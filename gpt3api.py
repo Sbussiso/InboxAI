@@ -6,14 +6,13 @@ import sys, time, itertools
 import PyPDF2
 import pandas as pd
 import itertools
+from website.models import ApiKey
+from flask_login import current_user
 
 nltk.download('punkt')
 
 logging.basicConfig(level=logging.DEBUG,format=' %(asctime)s - %(levelname)s - %(message)s')
 #logging.disable()
-
-
-openai.api_key = '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'
 
 
 #breaks up emails into a list of strings
