@@ -27,7 +27,7 @@ AI Assistant: Interact with the built-in AI for content generation and queries.
 
 # Usage
 
-As a web application, simply navigate to the hosted URL to start utilizing InboxAI's features. The user-friendly interface ensures a seamless experience, even for those unfamiliar with AI.
+As a web application, simply navigate to https://myinboxai.com/ to start utilizing InboxAI's features. The user-friendly interface ensures a seamless experience, even for those unfamiliar with AI.
 
 # API key?
 You must have an openAI API key to use inboxAI
