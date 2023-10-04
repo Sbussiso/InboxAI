@@ -79,6 +79,9 @@ You are now ready to use inboxAI!
 
   when you first log in the first email display will be empty, Just press next and then back to view it and all others. This will be resolved in a future update.
 
+# Reporting bugs/problems/feedback
+Any and all feedback is apreciated. by all means email me about anything project related at inboxAI@proton.me or sbussiso_dev@protonmail.com
+
 
 
 # License
