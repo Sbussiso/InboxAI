@@ -75,6 +75,10 @@ You are now ready to use inboxAI!
 
   emails can be structured very differently and inboxAI cannot read every one. That being said as time goes on it will be better and better being able to understand more and more email structures.
 
+- initial start display
+
+  when you first log in the first email display will be empty, Just press next. This will be resolved in a future update.
+
 
 
 # License
