@@ -77,7 +77,7 @@ You are now ready to use inboxAI!
 
 - initial start display
 
-  when you first log in the first email display will be empty, Just press next. This will be resolved in a future update.
+  when you first log in the first email display will be empty, Just press next and then back to view it and all others. This will be resolved in a future update.
 
 
 
