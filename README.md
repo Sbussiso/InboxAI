@@ -61,7 +61,7 @@ You are now ready to use inboxAI!
 
 - Loading screens
 
-  there are no elaborate loading screens at this time so check your tab to see if something is loading
+  there are no elaborate loading screens at this time so wait a few after you click a button to be sure it isnt already loading. This will be resolved in a future update.
 
 - 3rd party API
 
