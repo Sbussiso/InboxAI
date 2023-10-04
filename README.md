@@ -54,6 +54,27 @@ step 10. enter the api key in the API key section when creating your inboxAI acc
 
 You are now ready to use inboxAI!
 
+# Current problems/limitations
+- Gmail only
+  
+  you must have a gmail account to use this application, inboxAI will only accept an gmail address (for now, more email support will be added later)
+
+- Loading screens
+
+  there are no elaborate loading screens at this time so check your tab to see if something is loading
+
+- 3rd party API
+
+  the openAI GPT-3 api is a 3rd party service not created by me so the security of your data also relies on openAI. You are using this service at your own risk.
+
+- assistant text box
+
+  currently you may experience issues with not being able to scroll correctly when interacting with the AI assistant. This is something that will be resolved in a future update
+
+- summarization problems
+
+  emails can be structured very differently and inboxAI cannot read every one. That being said as time goes on it will be better and better being able to understand more and more email structures.
+
 
 
 # License
