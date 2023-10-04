@@ -13,6 +13,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
+import google.auth.exceptions
+
 
 def get_plain_text(parts):
     for part in parts:
@@ -32,7 +34,6 @@ def email_access():
     # Set the required scopes
     SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 
-
     # Load your credentials
     creds = None
     if os.path.exists('token.pickle'):
@@ -41,11 +42,14 @@ def email_access():
 
     # If there are no (valid) credentials available, prompt the user to log in.
     if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
+        try:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+        except google.auth.exceptions.RefreshError:
+            os.remove('token.pickle')
             flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
             creds = flow.run_local_server(port=0)
+            
         # Save the credentials for the next run
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
