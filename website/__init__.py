@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from os import path
+from os import path, environ
 from flask_login import LoginManager
 from flask_migrate import Migrate
 
@@ -11,7 +11,7 @@ DB_NAME = "database.db"
 #creates application and intializes secret key
 def create_app():
     app = Flask(__name__)
-    app.config['SECRET_KEY'] = '1234567'
+    app.config['SECRET_KEY'] = environ.get('SECRET_KEY', 'default_fallback_key')
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}' # locates database
     db.init_app(app) # initialize database
 
