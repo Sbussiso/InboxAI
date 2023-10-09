@@ -3,7 +3,6 @@ import base64
 import pickle
 from googleapiclient.discovery import build
 from google_auth_httplib2 import AuthorizedHttp
-from bs4 import BeautifulSoup
 import os
 from googleapiclient.errors import HttpError
 from google.oauth2.credentials import Credentials
@@ -30,29 +29,46 @@ def get_plain_text(parts):
             return get_plain_text(part['parts'])
 
 
-def email_access():
-    # Set the required scopes
+def get_credentials():
     SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
-
-    # Load your credentials
     creds = None
+
+    # Check for existing token
     if os.path.exists('token.pickle'):
         with open('token.pickle', 'rb') as token:
             creds = pickle.load(token)
-
+    
     # If there are no (valid) credentials available, prompt the user to log in.
     if not creds or not creds.valid:
-        try:
-            if creds and creds.expired and creds.refresh_token:
+        if creds and creds.expired and creds.refresh_token:
+            try:
                 creds.refresh(Request())
-        except google.auth.exceptions.RefreshError:
-            os.remove('token.pickle')
+            except google.auth.exceptions.RefreshError:
+                creds = None
+        
+        # If creds are still not available (either didn't exist or couldn't be refreshed), re-login
+        if not creds:
             flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
             creds = flow.run_local_server(port=0)
             
-        # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+            # Save the credentials for future use
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
+
+    if creds is None:
+        raise Exception("Failed to obtain credentials. Please authenticate again.")
+    
+    return creds
+
+
+
+
+
+
+
+
+def email_access():
+    creds = get_credentials()
 
     service = build('gmail', 'v1', credentials=creds)
 
@@ -85,6 +101,7 @@ def email_access():
             })
 
     return emails, service
+
 
 def display_emails(service):
     emails, _ = email_access()
