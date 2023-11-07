@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 import openai
 from email_client import email_access, display_emails, move_email_to_trash, star_email, reply_email, send_email_with_attachment
 import os, re, base64, quopri, sys
-import tiktoken
+#import tiktoken
 from googleapiclient.errors import HttpError
 from bs4 import BeautifulSoup
 import pickle

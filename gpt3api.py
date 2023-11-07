@@ -1,7 +1,7 @@
 import logging
 import nltk
 import openai
-import tiktoken
+#import tiktoken
 import sys, time, itertools
 import PyPDF2
 import pandas as pd

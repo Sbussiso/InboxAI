@@ -10,29 +10,29 @@ DB_NAME = "database.db"
 
 #creates application and intializes secret key
 def create_app():
-    app = Flask(__name__)
-    app.config['SECRET_KEY'] = environ.get('SECRET_KEY', 'default_fallback_key')
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}' # locates database
-    db.init_app(app) # initialize database
+    application = Flask(__name__)
+    application.config['SECRET_KEY'] = environ.get('SECRET_KEY', 'default_fallback_key')
+    application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}' # locates database
+    db.init_app(application) # initialize database
 
     # initialize Flask-Migrate after SQLAlchemy
-    migrate = Migrate(app, db)
+    migrate = Migrate(application, db)
 
     from .views import views
     from .auth import auth
 
-    app.register_blueprint(views, url_prefix='/')
-    app.register_blueprint(auth, url_prefix='/')
+    application.register_blueprint(views, url_prefix='/')
+    application.register_blueprint(auth, url_prefix='/')
 
     from .models import User
 
-    with app.app_context():
+    with application.app_context():
         db.create_all()
 
 
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
-    login_manager.init_app(app)
+    login_manager.init_app(application)
 
     @login_manager.user_loader
     def load_user(id):
@@ -40,7 +40,7 @@ def create_app():
 
 
 
-    return app
+    return application
 
 
 
