@@ -261,7 +261,7 @@ def gpt_summarize(prompt):
 
 
 #! for emails too large for gpt_summarize specificaly
-def gpt_response_upgraded(content):
+def email_summary(content):
     logging.debug('Starting gpt_response_upgraded function')
     time.sleep(1)  # wait one second
 
@@ -319,7 +319,7 @@ def pdf_response(filepath):
     print(pdf_text)
 
 
-    gpt_response_upgraded(pdf_text)
+    email_summary(pdf_text)
 
 
     # TEST: increacing chunk from 4 to 8
@@ -387,3 +387,5 @@ def excel_response(sheet):
 
 #sheet = input('Enter File Name: ') # Financial Sample.xlsx
 #excel_response(sheet)
+
+

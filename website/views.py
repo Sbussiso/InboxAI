@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 import openai
 from email_client import email_access, display_emails, move_email_to_trash, star_email, reply_email, send_email_with_attachment
 import os, re, base64, quopri, sys
-#import tiktoken
+import tiktoken
 from googleapiclient.errors import HttpError
 from bs4 import BeautifulSoup
 import pickle
@@ -24,11 +24,14 @@ import logging, webbrowser
 from flask import redirect
 from tempfile import NamedTemporaryFile
 import nltk
-from gpt3api import gpt_response_upgraded, gpt_bot_response
+from lang import clean_email, email_summary, gpt_bot_response, check_api_key
 from .forms import KeyForm  # Import form from forms.py
 from .models import db, Email, Conversation, ApiKey  # Import models from models.py
 
 import colorlog
+import bleach
+from flask import request, jsonify
+from flask_login import current_user
 
 # Define the logger
 logger = logging.getLogger()
@@ -53,7 +56,27 @@ logger.critical("Critical message")
 #gets the api key from the current user.
 def get_api_key(user_id):
     api_key_entry = ApiKey.query.filter_by(user_id=user_id).first()
-    return api_key_entry.key if api_key_entry else None
+
+    logging.debug(f"API KEY ENTRY: {api_key_entry}")
+    # Check if the API key is valid
+    key_check = check_api_key(api_key_entry.key)
+    logging.debug(f"API KEY CHECK: {key_check}")
+
+    if key_check == False:
+        #Handle the case where the API key is invalid
+        flash('API key is invalid.', 'error')
+        logging.debug("API KEY IS INVALID")
+        sys.exit()#! this is temporary
+        return redirect(url_for('views.key'))
+        
+
+    else:
+        #returns valid key
+        logging.debug("API KEY IS VALID")
+        return api_key_entry.key if api_key_entry else None
+    #return api_key_entry.key if api_key_entry else None
+
+
 
 
 #uses get_api_key to set configure the key
@@ -123,14 +146,8 @@ def chat():
 @login_required
 def home():
 
-    #conntects user api to gpt-3
-    connect_api_key()
-
-
-
-
     #writes console outpu to text file
-    file_handler = logging.FileHandler('logfile.log')
+    file_handler = logging.FileHandler('logfile.log') #! log file
     logging.getLogger().addHandler(file_handler)
 
     
@@ -155,7 +172,9 @@ def home():
         if Email.query.filter_by(id=email_id).first():
             logging.debug("EMAIL ALREADY EXISTS IN DATABASE, CONTINUING.......\n")
             continue  # Skip this email and move to the next one
+
         #! PROGRAM WILL EXIT FOR LOOP HERE IF ALL EMAILS ALREADY PRESENT IN DATABASE
+        
         logging.debug("EMAIL NOT IN DATABASE, ADDING.......\n")
         logging.debug("FETCHING EMAIL DATA.....\n")
         # Fetch the email from the Gmail API...
@@ -250,34 +269,14 @@ def home():
         logging.debug(f"Date: {date}")
         logging.debug("--------")
 
+
+
+
         logging.debug("CLEANING UP CONTENT.......")
-
-        # Remove CSS properties
-        clean_content = re.sub(r'[\w-]*:\s*.*?;', '', content)
-
-        # Remove CSS classes ending with "important"
-        clean_content = re.sub(r'\w*important', '', clean_content)
-
-        # Remove CSS classes ending with "displaynone"
-        clean_content = re.sub(r'\w*displaynone', '', clean_content)
-
-        # Remove multiple line breaks
-        cleaned_content = re.sub(r'\n\s*\n', '\n', clean_content)
-
-        # Remove multiple spaces
-        cleaned_content = re.sub(r' +', ' ', cleaned_content)
-
-        # removes links
-        cleaned_content = re.sub(r'http\S+', '', cleaned_content)
-
-        # removes special characters
-        cleaned_content = re.sub(r'[^\w\s]', '', cleaned_content)
-
-        #remove excess whitespace
-        cleaned_content = ' '.join(cleaned_content.split())
-
+        #! gpt cleans up content
+        cleaned_content = clean_email(content)
         content = cleaned_content
-        logging.debug(f"CONTENT CLEANED: {content}")
+        logging.debug(f"GPT CLEANED CONTENT: {content}")
 
         # Create a new Email instance and add it to the session
         email = Email(
@@ -314,7 +313,7 @@ def home():
 
 
         #runs email through upgraded gpt response
-        response = gpt_response_upgraded(prompt)#! imported from gpt3api.py, multiple depencencies
+        response = email_summary(prompt)
         
         logging.debug(f"GPT API CONNECTION SUCCESSFUL: {response}")
         email.gpt_response = response  
@@ -402,7 +401,6 @@ def delete_email():
 @login_required
 def regen_response():
     #conntects user api to gpt-3
-    connect_api_key()
 
     print("Received data: ", request.get_json())
     emails, service = email_access() #change emails to _
@@ -420,38 +418,20 @@ def regen_response():
 
     if email is None:
         return {"message": "No email found with provided id"}, 404
+    
 
     #generate new response for email
+    response = email_summary(email.content) #! cant use email.content because it is already incorectly summarized
 
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are summarizing an email."},
-                {"role": "user", "content": email.content},
-            ],
-            max_tokens = 2000,
-            n=1,
-            stop=None,
-            temperature=0.5 #0.5 is base temperature
-        )
-        print(f"API RESPONSE: {response}")
-
-        # Extract the assistant's message from the response
-        if 'choices' in response:
-            assistant_message = response['choices'][0]['message']['content']
-        else:
-            assistant_message = "There was an error with the API call."
-            print("API Error:", response)      
-
-    except openai.OpenAIError as e:
-        return {"message": f"GPT API Error: {e}"}, 500
+    logging.debug(f"email.content CURRENT EMAIL DATABASE CONTENT: {response}")
+    logging.debug(f"email_summary lang.py FUNCTION RESPONSE: {response}")
     
     #update gpt response to database
-    email.gpt_response = assistant_message
+    email.gpt_response = response 
+
     db.session.commit()
 
-    return jsonify({'gpt_response': assistant_message})  # return as JSON
+    return jsonify({'gpt_response': response})  # return as JSON
 
 
 

@@ -15,7 +15,19 @@ from email import encoders
 import google.auth.exceptions
 
 
+
+
 def get_plain_text(parts):
+    """
+    Extracts the plain text content from the email parts.
+
+    Args:
+        parts (list): List of email parts.
+
+    Returns:
+        str: Plain text content of the email.
+        
+    """
     for part in parts:
         if part['mimeType'] == 'text/plain':
             text = part['body']['data']
@@ -30,6 +42,15 @@ def get_plain_text(parts):
 
 
 def get_credentials():
+    """
+    Retrieves the credentials required to access the Gmail API.
+
+    Returns:
+        creds (google.auth.credentials.Credentials): The credentials object used for authentication.
+    
+    Raises:
+        Exception: If the credentials cannot be obtained or authenticated.
+    """
     SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
     creds = None
 
@@ -68,6 +89,17 @@ def get_credentials():
 
 
 def email_access():
+    """
+    Accesses the user's Gmail inbox and retrieves a list of emails.
+
+    Returns:
+        emails (list): A list of dictionaries representing the emails, each containing the following keys:
+            - id (str): The unique identifier of the email.
+            - subject (str): The subject of the email.
+            - content (str): The content of the email.
+            - internal_date (int): The internal date of the email in Unix timestamp format, or None if not available.
+        service: The Gmail service object used for accessing the Gmail API.
+    """
     creds = get_credentials()
 
     service = build('gmail', 'v1', credentials=creds)
@@ -104,6 +136,15 @@ def email_access():
 
 
 def display_emails(service):
+    """
+    Display and save emails to separate text files.
+
+    Args:
+        service: The email service object.
+
+    Returns:
+        None
+    """
     emails, _ = email_access()
 
     # Sort emails by internal_date in descending order (newest to oldest)
