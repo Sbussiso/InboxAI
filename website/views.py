@@ -24,7 +24,7 @@ import logging, webbrowser
 from flask import redirect
 from tempfile import NamedTemporaryFile
 import nltk
-from lang import clean_email, email_summary, gpt_bot_response, check_api_key
+from lang import clean_email, email_summary, gpt_bot_response, check_api_key, generate_email_draft
 from .forms import KeyForm  # Import form from forms.py
 from .models import db, Email, Conversation, ApiKey  # Import models from models.py
 
@@ -32,6 +32,7 @@ import colorlog
 import bleach
 from flask import request, jsonify
 from flask_login import current_user
+
 
 # Define the logger
 logger = logging.getLogger()
@@ -50,33 +51,19 @@ logger.warning("Warning message")
 logger.error("Error message")
 logger.critical("Critical message")
 
-#logging.disable()
+logging.disable()
+
+
+
 
 
 #gets the api key from the current user.
 def get_api_key(user_id):
+    user_id = current_user.id
     api_key_entry = ApiKey.query.filter_by(user_id=user_id).first()
 
     logging.debug(f"API KEY ENTRY: {api_key_entry}")
-    # Check if the API key is valid
-    key_check = check_api_key(api_key_entry.key)
-    logging.debug(f"API KEY CHECK: {key_check}")
-
-    if key_check == False:
-        #Handle the case where the API key is invalid
-        flash('API key is invalid.', 'error')
-        logging.debug("API KEY IS INVALID")
-        sys.exit()#! this is temporary
-        return redirect(url_for('views.key'))
-        
-
-    else:
-        #returns valid key
-        logging.debug("API KEY IS VALID")
-        return api_key_entry.key if api_key_entry else None
-    #return api_key_entry.key if api_key_entry else None
-
-
+    return api_key_entry.key if api_key_entry else None
 
 
 #uses get_api_key to set configure the key
@@ -131,11 +118,11 @@ def chat():
     conversation_history = [{"role": conv.role, "content": conv.content} for conv in conversation_history_query]
     
     # Get the bot's response and add it to the database
-    assistant_message, conversation_history = gpt_bot_response(conversation_history, user_message) 
+    assistant_message, conversation_history = gpt_bot_response(conversation_history, user_message, get_api_key(current_user.id))
     assistant_conversation = Conversation(user_id=current_user.id, role="assistant", content=assistant_message)
     db.session.add(assistant_conversation)
     db.session.commit()
-    
+   
     return jsonify({'message': assistant_message})  # return as JSON
 
 
@@ -313,7 +300,7 @@ def home():
 
 
         #runs email through upgraded gpt response
-        response = email_summary(prompt)
+        response = email_summary(prompt, get_api_key(current_user.id))
         
         logging.debug(f"GPT API CONNECTION SUCCESSFUL: {response}")
         email.gpt_response = response  
@@ -400,15 +387,19 @@ def delete_email():
 @views.route('/regenerate_response', methods=['POST'])
 @login_required
 def regen_response():
-    #conntects user api to gpt-3
+    """
+    Regenerates the response for an email using GPT-3 API.
 
+    Returns:
+        A JSON response containing the regenerated response for the email.
+    """
+
+    #conntects user api to gpt-3  
     print("Received data: ", request.get_json())
     emails, service = email_access() #change emails to _
     # Get the email_id from the request data
     email_id = request.get_json().get('email_id')
     logging.debug(f"email_id, VALUE: {email_id}")
-    
-
 
     if email_id is None:
         return {"message": "No email id provided"}, 400
@@ -419,9 +410,8 @@ def regen_response():
     if email is None:
         return {"message": "No email found with provided id"}, 404
     
-
     #generate new response for email
-    response = email_summary(email.content) #! cant use email.content because it is already incorectly summarized
+    response = email_summary(email.content, get_api_key(current_user.id))
 
     logging.debug(f"email.content CURRENT EMAIL DATABASE CONTENT: {response}")
     logging.debug(f"email_summary lang.py FUNCTION RESPONSE: {response}")
@@ -442,6 +432,18 @@ def regen_response():
 @views.route('/draft_response', methods=['POST'])
 @login_required
 def response():
+    """
+    Handles the response to an email request.
+
+    This function receives the email_id and draft_response from the request data,
+    retrieves the corresponding email record from the database, and sends a response
+    email to the original sender.
+
+    Returns:
+        A dictionary with a success message if the response is sent successfully,
+        or an error message if there is an issue with the request.
+    """
+
     logging.debug(f"RECIEVED DATA: {request.get_json()}")
     emails, service = email_access() #change emails to _
     # Get the email_id and draft_response from the request data
@@ -475,6 +477,20 @@ def response():
 @views.route('/draft_response_attachment', methods=['POST'])
 @login_required
 def response_attachment():
+    """
+    Sends a response email with an attachment.
+
+    This function receives data from the request, including the email ID, draft response,
+    and file contents. It retrieves the email record from the database using the provided
+    email ID. Then, it decodes the base64 file contents and writes them to a temporary file.
+    Finally, it calls the send_email_with_attachment function to send the response email
+    with the attachment.
+
+    Returns:
+        A dictionary with a success message if the response is sent successfully,
+        or an error message if there is an issue with the request.
+    """
+
     logging.debug(f"RECIEVED DATA: {request.get_json()}")
     logging.debug('ENTERING DRAFT_RESPONSE_ATTACHMENT FUNCTION')
     _, service = email_access()
@@ -535,48 +551,12 @@ def response_attachment():
 
 @views.route('/generate_draft', methods=['POST'])
 def generate_draft():
-    #conntects user api to gpt-3
-    connect_api_key()
+    generated_draft = generate_email_draft(get_api_key(current_user.id))
 
-    data = request.get_json()
-    email_id = data.get('email_id')
-
-    # Here you would retrieve the email from your database and send the email content to GPT-3
-
-    email = Email.query.get(email_id)
-    #TODO: generate gpt response
-    if email is None:
-        return {"message": "No email found with provided id"}, 404
-
-    #generate new response for email
-
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are to respond to this email professionally as if you are the original reciever of this content. Feel free to be creative"},
-                {"role": "user", "content": email.content},
-            ],
-            max_tokens = 2000,
-            n=1,
-            stop=None,
-            temperature=0.5 #0.5 is base temperature
-        )
-        print(f"API RESPONSE: {response}")
-
-        # Extract the assistant's message from the response
-        if 'choices' in response:
-            assistant_message = response['choices'][0]['message']['content']
-        else:
-            assistant_message = "There was an error with the API call."
-            print("API Error:", response)      
-
-    except openai.OpenAIError as e:
-        return {"message": f"GPT API Error: {e}"}, 500
     
     
 
-    return jsonify({'gpt3_response': assistant_message})
+    return jsonify({'gpt3_response': generated_draft}) # return as JSON
 
 
 
@@ -586,5 +566,7 @@ def generate_draft():
 @views.route('/open_gmail', methods=['POST'])
 @login_required
 def to_gmail():
+
     logging.debug('ENTERED /open_gmail ROUTE.......')
+
     return redirect("https://www.gmail.com")

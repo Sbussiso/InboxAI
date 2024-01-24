@@ -5,7 +5,7 @@
 
 {% block content %}
 
-<form method="POST">
+<form method="POST" id="loginForm" class="loginForm">
     <h3 align="center">Login</h3>
     <div class="form-group">
         <label for="email">Email Address</label>
@@ -31,4 +31,9 @@
     <button type="submit" class="btn btn-danger">Login</button>
 
 </form>
+<style>
+    .loginForm {
+        margin-top: 150px;
+    }
+</style>
 {% endblock %}

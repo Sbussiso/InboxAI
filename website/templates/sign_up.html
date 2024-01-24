@@ -1,5 +1,7 @@
 {%extends "base.html" %} {% block title %}Sign Up{% endblock %} {% block content %}
-<form method="POST">
+
+
+<form method="POST" id="signUpForm" class="signUpForm">
     <h3 align="center">Sign Up</h3>
     <div class="form-group">
         <label for="email">Email Address</label>
@@ -55,4 +57,9 @@
     <br />
     <button type="submit" class="btn btn-danger">Submit</button>
 </form>
+<style>
+    .signUpForm {
+        margin-top: 150px;
+    }
+</style>
 {% endblock %}

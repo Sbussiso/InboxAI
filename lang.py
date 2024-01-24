@@ -1,9 +1,12 @@
 import logging, sys
 import nltk
+import openai
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts.chat import ChatPromptTemplate
+from langchain.text_splitter import CharacterTextSplitter
+#from langchain.tokenizers import OpenAITokenizer
 from dotenv import load_dotenv
-import os, re, time
+import os, re, time, html
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 import nltk
@@ -13,7 +16,7 @@ import nltk
 nltk.download('punkt')
 
 logging.basicConfig(level=logging.DEBUG,format=' %(asctime)s - %(levelname)s - %(message)s')
-#logging.disable()
+logging.disable()
 
 # Function to split email into a list of sentences
 def split_email(email_string):
@@ -24,7 +27,8 @@ def split_email(email_string):
 # Function to clean email content
 def clean_email(content):
     """
-    Cleans the given email content by removing links, HTML tags, brackets, whitespace, newlines, carriage returns, and tabs.
+    Cleans the given email content by removing HTML tags, links, email addresses,
+    unnecessary whitespace, and other unwanted patterns.
 
     Args:
         content (str): The email content to be cleaned.
@@ -32,19 +36,31 @@ def clean_email(content):
     Returns:
         str: The cleaned email content.
     """
+
     logging.debug("starting cleaning email........")
-    cleaned_content = re.sub(r"http\S+", "", content)  # Remove links
-    cleaned_content = re.sub(r"www\S+", "", cleaned_content)  # Remove links
-    cleaned_content = re.sub(r"@\S+", "", cleaned_content)  # Remove links
-    cleaned_content = re.sub(r"<.*?>", "", cleaned_content)  # Remove HTML tags
-    cleaned_content = re.sub(r"\[.*?\]", "", cleaned_content)  # Remove anything in brackets
-    cleaned_content = re.sub(r"\(.*?\)", "", cleaned_content)  # Remove anything in parentheses
-    cleaned_content = re.sub(r"\{.*?\}", "", cleaned_content)  # Remove anything in curly brackets
-    cleaned_content = re.sub(r"\s+", "  ", cleaned_content)  # Remove unnecessary whitespace
-    cleaned_content = re.sub(r"\n", "", cleaned_content)    # Remove newlines
-    cleaned_content = re.sub(r"\r", "", cleaned_content)    # Remove carriage returns
-    cleaned_content = re.sub(r"\t", "", cleaned_content)    # Remove tabs
-    content = cleaned_content
+    # Decoding HTML entities
+    content = html.unescape(content)
+
+    # Additional regex patterns
+    content = re.sub(r"style='[^']+'", "", content)  # Remove inline styles
+    content = re.sub(r"<style.*?</style>", "", content, flags=re.DOTALL)  # Remove style tags
+    content = re.sub(r"<script.*?</script>", "", content, flags=re.DOTALL)  # Remove script tags
+    content = re.sub(r"<!--.*?-->", "", content, flags=re.DOTALL)  # Remove HTML comments
+    content = re.sub(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "", content)  # Remove email addresses
+    content = re.sub(r"[-*]{3,}", "---", content)  # Shorten repeated characters
+
+    # Your existing patterns
+    content = re.sub(r"http\S+", "", content)  # Remove links
+    content = re.sub(r"www\S+", "", content)  # Remove links
+    content = re.sub(r"@\S+", "", content)  # Remove links
+    content = re.sub(r"<.*?>", "", content)  # Remove HTML tags
+    content = re.sub(r"\[.*?\]", "", content)  # Remove anything in brackets
+    content = re.sub(r"\(.*?\)", "", content)  # Remove anything in parentheses
+    content = re.sub(r"\{.*?\}", "", content)  # Remove anything in curly brackets
+    content = re.sub(r"\s+", " ", content)  # Remove unnecessary whitespace
+    content = re.sub(r"\n", "", content)  # Remove newlines
+    content = re.sub(r"\r", "", content)  # Remove carriage returns
+    content = re.sub(r"\t", "", content)  # Remove tabs
     
     logging.debug("Finished cleaning email.......")
     logging.debug(f"RETURNING CLEANED CONTENT: {content}")
@@ -66,32 +82,38 @@ def check_api_key(api_key):
     Returns:
         bool: True if the API key is valid, False otherwise.
     """
-    logging.debug("starting api key check........")
-    chat_model = ChatOpenAI(openai_api_key=api_key)
+    try:
+        logging.debug("starting api key check........")
+        chat_model = ChatOpenAI(openai_api_key=api_key)
 
-    template = "You are an api key checker. if you get any input the api key is valid. If the api key is valid, say 'VALID'. If the api key is invalid, say 'INVALID' for the regex" #key phrase is VALID and INVALID
-    
-    human_template = "{key}"
+        template = "Just say 'VALID' and nothing else for a regex check."
+        
+        human_template = "{key}"
 
-    chat_prompt = ChatPromptTemplate.from_messages([
-        ("system", template),
-        ("human", human_template),
-    ])
+        chat_prompt = ChatPromptTemplate.from_messages([
+            ("system", template),
+            ("human", human_template),
+        ])
 
-    messages = chat_prompt.format_messages(key=api_key)
+        messages = chat_prompt.format_messages(key=api_key)
 
-    result = chat_model.predict_messages(messages)
+        result = chat_model.predict_messages(messages)
 
-    key_check = result.content
+        key_check = result.content
 
-    if str(key_check) == None or re.search(r"\bINVALID\b", key_check):
-        verify = False
+        if str(key_check) == None:
+            verify = False
+            logging.debug("NO API KEY PROVIDED........")
+            return verify
+        
+        elif re.search(r"\bVALID\b", key_check):
+            verify = True
+            logging.debug("VALID API KEY........")
+            return verify
+        
+    except openai.error.AuthenticationError:
         logging.debug("INVALID API KEY........")
-        return verify
-    
-    elif re.search(r"\bVALID\b", key_check):
-        verify = True
-        logging.debug("VALID API KEY........")
+        verify = False
         return verify
     
 
@@ -99,19 +121,21 @@ def check_api_key(api_key):
 
 
 # Function to generate email summary
-def email_summary(content):
+def email_summary(content, api_key):
     """
     Generates a summary of an email content using the GPT-3 language model.
 
     Args:
         content (str): The content of the email.
+        api_key (str): The API key for OpenAI.
 
     Returns:
         str: The generated summary of the email content.
     """
-    load_dotenv() #!for testing
-    api_key = os.getenv("OPENAI_API_KEY") #! replace with user database key
-    #TODO: get api key from database
+    #load_dotenv() #!for testing
+    #api_key = os.getenv("OPENAI_API_KEY") #! replace with user database key
+    api_key = api_key #TODO: get api key from database
+   
 
     # summary function
     logging.debug("starting email summary........")
@@ -129,7 +153,49 @@ def email_summary(content):
 
     messages = chat_prompt.format_messages(text=content)
 
-    result = chat_model.predict_messages(messages)
+    result = None
+    trunicate = False
+    while result is None:
+        try:
+            result = chat_model.predict_messages(messages)
+        except openai.error.InvalidRequestError as e:
+            logging.debug("first InvalidRequestError, Waiting for 5 seconds...")
+            time.sleep(5)
+
+            # retries the request 2 times, if it fails again it will trunicate the content
+            i = 0
+            if trunicate == True:
+                logging.debug("skiping retry... trunicate is true")
+            else:
+                while i < 2:
+                    logging.debug("Retrying...")
+                    try:
+                        result = chat_model.predict_messages(messages)
+                        #trunicate = False
+                        break
+                    except openai.error.InvalidRequestError as e:
+                        logging.debug("second InvalidRequestError, Waiting for 5 seconds...")
+                        time.sleep(5)
+                        i += 1
+                        if i == 2:
+                            trunicate = True
+                            break
+            logging.debug("Finished retrying...")
+
+            if trunicate == True:
+                #trunicates the content if it is too long
+                logging.debug(f"Prompt too big. Truncating content...")
+
+                email_split = split_email(content)
+                #removes the last 12 sentances from the email
+                trunicated_email = " ".join(email_split[:-50])
+
+                messages = chat_prompt.format_messages(text=trunicated_email)
+                content = trunicated_email
+
+        
+            
+    
     summary = result.content
 
     # handles the summary error called by chat gpt
@@ -148,7 +214,7 @@ def email_summary(content):
 
 
 
-def gpt_bot_response(conversation_history, prompt):
+def gpt_bot_response(conversation_history, prompt, api_key):
     """
     Generates a response from a GPT-based chatbot model.
 
@@ -160,8 +226,9 @@ def gpt_bot_response(conversation_history, prompt):
         tuple: A tuple containing the generated response and the updated conversation history.
     """
     logging.debug("starting chat response........")
-    load_dotenv()
-    api_key = os.getenv("OPENAI_API_KEY")
+    #load_dotenv()
+    #api_key = os.getenv("OPENAI_API_KEY")
+    api_key = api_key
 
     chat_model = ChatOpenAI(openai_api_key=api_key)
 
@@ -179,6 +246,47 @@ def gpt_bot_response(conversation_history, prompt):
     logging.debug(assistant_message.content)
     logging.debug("finished email summary.......")
     return assistant_message.content, conversation_history
+
+
+def generate_email_draft(api_key):
+    """
+    Generates a draft email using the GPT-3 language model.
+
+    Returns:
+        str: The generated draft email.
+    """
+    logging.debug("starting draft generation........")
+    #load_dotenv()
+    #api_key = os.getenv("OPENAI_API_KEY")
+
+    chat_model = ChatOpenAI(openai_api_key=api_key)
+
+    template = "Respond to this email as if you are the recipient."
+    human_template = "EMAIL: {text}"
+
+    chat_prompt = ChatPromptTemplate.from_messages([
+        ("system", template),
+        ("human", human_template),
+    ])
+
+    messages = chat_prompt.format_messages(text="")
+
+    result = chat_model.predict_messages(messages)
+
+    draft = result.content
+    logging.debug("finished draft generation.......")
+    return draft
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -3,6 +3,7 @@ from .models import User, ApiKey
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import db
 from flask_login import login_user, login_required, logout_user, current_user
+from lang import check_api_key
 
 auth = Blueprint('auth', __name__)
 
@@ -60,7 +61,11 @@ def sign_up():
         elif password1 != password2:
             flash("Passwords do not match", category='error')
         elif len(password1) < 7:
-            flash("Password must be at least 7 characters", category='error')
+            flash("Password must be at least 7 characters", category='error')  
+        # Check if the API key is valid
+        elif check_api_key(api_key) == False:
+            flash("Invalid API key", category='error')
+        
 
         else:
             #add user

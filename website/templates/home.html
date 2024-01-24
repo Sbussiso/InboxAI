@@ -11,24 +11,40 @@
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+
+    <!--google fonts-->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 </head>
 
 
 <body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" style="display: none;">
+        <div class="spinner-container">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden"></span>
+            </div>
+        </div>
+    </div>
+
     <!--for flexbox-->
     <div id="mainBox" class="d-flex flex-column align-items-center justify-content-center vh-100 pt-5">
         
-        <div id="boxes-container" class="container-fluid bg-white border border-dark rounded overflow-auto">
+        <div id="boxes-container" class="container-fluid bg-white border rounded overflow-auto">
 
             <div id="chatbox" class="container-fluid">
-                <p class="botText font-weight-bold text-dark text-center h2 pt-3"><span>lets go thru some emails!</span></p>
+                <p class="botText header-text text-center h2 pt-3" header-text ><span>lets go through some emails!</span></p>
                 
                 <!-- displays one email at a time-->
-                <div class="border border-dark rounded p-3">
-                    <p id="senderId"><strong>Sender:</strong></p>
-                    <p id="requestSize"><strong>Request size:</strong></p>
-                    <p id="subject"><strong>Subject:</strong></p>
-                    <p id="gpt3"><strong>AI:</strong></p>
+                <div class="border rounded p-3">
+                    <div id="senderInfo" class="border rounded bg-grey p-3 header-text h5">
+                        <p id="senderId"><strong>Sender:</strong></p>
+                        <p id="requestSize"><strong>Request size:</strong></p>
+                        <p id="subject"><strong>Subject:</strong></p>
+                    </div>
+                        <p id="gpt3" class="mt-5 p-3 bg-grey border rounded "><strong>AI:</strong></p>
+                    
                 </div>
             
             <!-- button commands -->
@@ -104,9 +120,6 @@
             
             
 
-
-             
-
             <!-- Assistant Modal -->
             <div class="modal fade" id="assistantModal" tabindex="-1" role="dialog" aria-labelledby="assistantModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-right" role="document">
@@ -123,7 +136,7 @@
                             </div>
                             <div class="mt-auto">
                                 <textarea id="inboxTextInput" name="msg" placeholder="Message" class="form-control"></textarea>
-                                <button id="inboxButtonInput" type="button" class="btn btn-primary mt-2">
+                                <button id="inboxButtonInput" type="button" class="btn btn-primary btn-block mt-2">
                                     Send
                                 </button>
                             </div>
@@ -148,15 +161,38 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    Are you sure you want to send this response?
+                    Are you sure you want to send this response? If you used AI generation you need to review the response before sending.
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="confirmSendButton">Confirm Send</button>
+                    <button type="button" class="btn btn-danger" id="confirmSendButton">Confirm Send</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!--warning for deleting emails-->
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="deleteConfirmationModalLabel">Confirm Deletion</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            </div>
+            <div class="modal-body">
+            Deleting this email removes it from both the database and Gmail
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteButton">Delete</button>
+            </div>
+        </div>
+        </div>
+    </div>
+  
 
 </body>
 
@@ -174,6 +210,83 @@
         height: 100%;
         overflow: auto;
     }
+
+    .bg-grey {
+    background-color: #f8f9fa !important;
+}
+
+    body {
+        font-family: 'Roboto', sans-serif;
+    }
+
+    .header-text {
+    font-family: 'Fredoka One', sans-serif;
+    }
+
+
+    h1, h2, h3 {
+        font-family: 'Roboto', sans-serif;
+        font-weight: 700; /* for bold headings */
+    }
+
+    #loadingSpinner {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    height: 100px;
+    z-index: 1050;
+}
+
+    #loadingSpinner .spinner-border {
+        width: 100%;
+        height: 100%;
+        border-width: 10px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Overlay */
+    .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1050;
+}
+
+    .spinner-container {
+        width: 100px;
+        height: 100px;
+    }
+
+    .spinner-border {
+        width: 100%;
+        height: 100%;
+        border-width: 10px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+
+
+    
+
 </style>
 <!--end of CSS styling-->
 
@@ -183,13 +296,24 @@
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
 <script>
     $(document).ready(function() {
+        
         var summaries = {{ summaries|tojson }};
         var currentSummaryIndex = 0;
 
+        // Function to show and hide spinner
+        function showSpinner() {
+            $('.loading-overlay').show();
+            $('#loadingSpinner').show();
+        }
+        function hideSpinner() {
+            $('.loading-overlay').hide();
+            $('#loadingSpinner').hide();
+        }
        
+        hideSpinner();
 
         function displaySummary(index) {
-            // Display summary logic here... potentially uneccessary delete later
+            // Display summary logic here... potentially uneccessary delete late
 
             if (index >= summaries.length || index < 0) {
                 console.error("Invalid index: ", index);
@@ -210,6 +334,10 @@
             console.log("displaySummary called with index", index);
             console.log("summary", summary);
         }
+
+
+        
+
 
         $('#nextButton').click(function() {
           // Increment the currentSummaryIndex if not at the end
@@ -233,38 +361,59 @@
             }
         });
 
-        //for user deleting emails
+        // For user deleting emails - Only shows the modal
         $('#deleteButton').click(function() {
+            // Show the delete confirmation modal
+            $('#deleteConfirmationModal').modal('show');
+        });
+
+        // For user confirming deletion
+        $('#confirmDeleteButton').click(function() {
+            // Here, implement the AJAX call to actually delete the email
             var currentEmailId = summaries[currentSummaryIndex]['id'];
-            console.log("Current Email ID: ", currentEmailId);
+            showSpinner();
+            console.log("Confirmed deletion button press for Email ID: ", currentEmailId);
+
             $.ajax({
                 url: '/delete_email',
                 type: 'POST',
                 data: JSON.stringify({ 'email_id': currentEmailId }),
                 contentType: 'application/json',
                 success: function(result) {
+                    console.log("Email deleted successfully");
+
                     // Remove email from summaries array
                     summaries.splice(currentSummaryIndex, 1);
-                    // Show the next email
-                    if (currentSummaryIndex < summaries.length) {
-                        displaySummary(currentSummaryIndex);
-                    } else if (summaries.length > 0) {
+
+                    // Adjust index and show next/previous email
+                    if (currentSummaryIndex >= summaries.length) {
                         currentSummaryIndex--;
+                    }
+                    if (summaries.length > 0) {
                         displaySummary(currentSummaryIndex);
                     } else {
-                        // Clear the display if there are no more emails
+                        // Handle case where no emails are left
                         $('#senderId').text("No emails available.");
                         $('#requestSize').text("");
-                        $('#summary').text("");
+                        $('#subject').text("");
+                        $('#gpt3').text("");
                     }
                 },
-                error: function(error){
-                    console.log("Error: ", error);
+                error: function(error) {
+                    console.log("Error in deleting email: ", error);
+                },
+                complete: function() {
+                    hideSpinner();
                 }
-
-
             });
+
+            // Close the modal
+            $('#deleteConfirmationModal').modal('hide');
         });
+
+      
+
+
 
         $('#starButton').click(function() {
             var currentEmailId = summaries[currentSummaryIndex]['id'];
@@ -281,6 +430,7 @@
         //regenerates and displays response
         $('#regenerateButton').click(function() {
             var currentEmailId = summaries[currentSummaryIndex]['id'];
+            showSpinner();
             console.log("Current Email ID: ", currentEmailId);
             $.ajax({
                 url: '/regenerate_response',
@@ -297,7 +447,10 @@
                 },
                 error: function(jqXHR, textStatus, errorThrown){
                     console.log("Error: ", textStatus, ", ", errorThrown);
-                }
+                },
+                complete: function() {
+                    hideSpinner();
+                }       
 
             });
             
@@ -313,7 +466,11 @@
         $('#draftbox').hide();
         $('#draftButton').click(function(){
             $('#draftbox').show();
+            $('#prevButton').hide();
+            $('#nextButton').hide();
+            
         });
+
 
 
         //email attachment button functionality
@@ -363,40 +520,56 @@
                 file: $('#attachmentButton')[0].files[0]
         };
 
+        // When the 'Send Response' button is clicked
+        $('#draftSubmit').click(function() {
+            // Retrieve data to be sent
+            var currentEmailId = summaries[currentSummaryIndex]['id'];
+            var draftResponse = $('#responseDraft').val();
+            var file = $('#attachmentButton')[0].files[0];
+
+            // Show the confirmation modal
+            $('#confirmationModal').modal('show');
+
+            // Store the data temporarily for use in the confirm send button handler
+            window.tempEmailData = {
+                emailId: currentEmailId,
+                draftResponse: draftResponse,
+                file: file
+            };
+        });
+
+        // Confirm Send button inside the modal
         $('#confirmSendButton').click(function() {
             // Retrieve stored data
             var currentEmailId = window.tempEmailData.emailId;
             var draftResponse = window.tempEmailData.draftResponse;
             var file = window.tempEmailData.file;
 
-            if (file && file.size > 0) {
-                // Logic for sending email with attachment
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    var contents = e.target.result;
-                    // AJAX request for sending email with attachment
-                };
-                reader.readAsDataURL(file);
-            } else {
-                // AJAX request for sending email without attachment
-                $.ajax({
-                    url: '/draft_response',
-                    type: 'POST',
-                    data: JSON.stringify({ 'email_id': currentEmailId, 'draft_response': draftResponse }),
-                    contentType: 'application/json',
-                    success: function(response) {
-                        // Success logic
-                    },
-                    error: function(jqXHR, textStatus, errorThrown){
-                        // Error handling
-                    }
-                });
-        }
+            // AJAX request to send email (without attachment logic for simplicity)
+            showSpinner();
+            $.ajax({
+                url: '/draft_response',
+                type: 'POST',
+                data: JSON.stringify({ 'email_id': currentEmailId, 'draft_response': draftResponse }),
+                contentType: 'application/json',
+                success: function(response) {
+                    console.log("Email sent successfully");
+                    // Additional success logic
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error("Error in sending email: ", textStatus, errorThrown);
+                    // Error handling logic
+                },
+                complete: function() {
+                    hideSpinner();
+                }
+            });
 
-    // Clear temporary data and close the modal
-    delete window.tempEmailData;
-    $('#confirmationModal').modal('hide');
-});
+            // Clear temporary data and close the modal
+            delete window.tempEmailData;
+            $('#confirmationModal').modal('hide');
+        });
+
 
 
     // Show the confirmation modal
@@ -440,12 +613,15 @@
             // Clear the textarea and hide the draftbox
             $('#responseDraft').val('');
             $('#draftbox').hide();
+            $('#prevButton').show();
+            $('#nextButton').show();
         });
 
         // generates a gpt 3 auto response to email
         $('#generateDraft').click(function(){
             var currentEmailId = summaries[currentSummaryIndex]['id'];
             console.log("Current Email ID: ", currentEmailId);
+            showSpinner();
             $.ajax({
                 url: '/generate_draft',
                 type: 'POST',
@@ -458,6 +634,9 @@
                 },
                 error: function(jqXHR, textStatus, errorThrown){
                     console.log("Error: ", textStatus, ", ", errorThrown);
+                },
+                complete: function() {
+                    hideSpinner();
                 }
             });
         });
