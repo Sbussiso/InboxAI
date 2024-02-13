@@ -82,39 +82,36 @@ def check_api_key(api_key):
     Returns:
         bool: True if the API key is valid, False otherwise.
     """
-    try:
-        logging.debug("starting api key check........")
-        chat_model = ChatOpenAI(openai_api_key=api_key)
 
-        template = "Just say 'VALID' and nothing else for a regex check."
+    logging.debug("starting api key check........")
+    chat_model = ChatOpenAI(openai_api_key=api_key)
+
+    template = "Just say 'VALID' and nothing else for a regex check."
         
-        human_template = "{key}"
+    human_template = "{key}"
 
-        chat_prompt = ChatPromptTemplate.from_messages([
-            ("system", template),
-            ("human", human_template),
-        ])
+    chat_prompt = ChatPromptTemplate.from_messages([
+        ("system", template),
+        ("human", human_template),
+    ])
 
-        messages = chat_prompt.format_messages(key=api_key)
+    messages = chat_prompt.format_messages(key=api_key)
 
-        result = chat_model.predict_messages(messages)
+    result = chat_model.predict_messages(messages)
 
-        key_check = result.content
+    key_check = result.content
 
-        if str(key_check) == None:
-            verify = False
-            logging.debug("NO API KEY PROVIDED........")
-            return verify
-        
-        elif re.search(r"\bVALID\b", key_check):
-            verify = True
-            logging.debug("VALID API KEY........")
-            return verify
-        
-    except openai.error.AuthenticationError:
-        logging.debug("INVALID API KEY........")
+    if str(key_check) == None:
         verify = False
+        logging.debug("NO API KEY PROVIDED........")
         return verify
+        
+    elif re.search(r"\bVALID\b", key_check):
+        verify = True
+        logging.debug("VALID API KEY........")
+        return verify
+        
+    
     
 
 
