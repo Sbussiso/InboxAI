@@ -1,7 +1,8 @@
 import logging, sys
 import nltk
 import openai
-from langchain.chat_models import ChatOpenAI
+#from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts.chat import ChatPromptTemplate
 from langchain.text_splitter import CharacterTextSplitter
 #from langchain.tokenizers import OpenAITokenizer
@@ -12,8 +13,10 @@ from google.oauth2.credentials import Credentials
 import nltk
 
 
-
-nltk.download('punkt')
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
 
 logging.basicConfig(level=logging.DEBUG,format=' %(asctime)s - %(levelname)s - %(message)s')
 logging.disable()
